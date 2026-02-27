@@ -1,8 +1,30 @@
 # pokemon-showdown-app
-multiplayer pokemon battle local
 
-implements a nice interface and low level c++ networking with pokemon showdown https://pokemonshowdown.com
-pokemon showdown is open sourced, so this is how I am able to detemine api endpoints and comptability, however this repo might not always be stable since
-changes there will impact changes here, and I am the only maintainer for this repo
+Multiplayer pokemon battle client with a native macOS UI and low-level C++ networking, I will likely end up integrating this with my Acorn UI framework with C++ and Vulkan.
 
-https://pokemonshowdown.com/
+Note - this is just getting started, and I am currently going to shoot for a simple MVP, being able to enter a random 6v6 battle, then I will add more features.
+
+Connects to [Pokémon Showdown](https://pokemonshowdown.com) — the server is open source so I can determine API endpoints and protocol compatibility. This repo may break if upstream changes their protocol, and I am the only maintainer.
+
+- Server reference: https://github.com/smogon/pokemon-showdown
+- Protocol docs: https://github.com/smogon/pokemon-showdown/blob/master/PROTOCOL.md
+
+## Dependencies
+
+```bash
+brew install boost openssl
+```
+
+## Build
+
+```bash
+mkdir build && cd build
+cmake -B build -DOPENSSL_ROOT_DIR=$(brew --prefix openssl)
+make
+```
+
+## Run
+
+```bash
+./build/ps-cli
+```

@@ -18,7 +18,7 @@ brew install boost openssl
 ## Build
 
 ```bash
-mkdir build && cd build
+mkdir build
 cmake -B build -DOPENSSL_ROOT_DIR=$(brew --prefix openssl)
 make
 ```

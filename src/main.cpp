@@ -1,11 +1,6 @@
-#include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-#include <boost/beast/websocket/ssl.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/asio/connect.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/ssl/context.hpp>
+#include "pkmpch.h"
+
+#include <net/sslcontext.h>
 
 #include <iostream>
 #include <string>
@@ -23,11 +18,11 @@ int main() {
     const std::string path = "/showdown/websocket";
 
     net::io_context ioc;
-    ssl::context sslCtx(ssl::context::tlsv12_client);
-    sslCtx.set_default_verify_paths();
+    pkm::SSLContext& ssl_ctx = pkm::SSLContext::get();
+    ssl_ctx.init();
 
     tcp::resolver resolver(ioc);
-    websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws(ioc, sslCtx);
+    websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws(ioc, ssl_ctx.native_ctx());
 
     // SNI
     SSL_set_tlsext_host_name(ws.next_layer().native_handle(), host.c_str());

@@ -10,7 +10,6 @@ file(GLOB_RECURSE SRC_FILES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 add_executable(ps-cli ${SRC_FILES})
 
-
 target_include_directories(ps-cli
   PRIVATE ${Boost_INCLUDE_DIRS} 
           ${OPENSSL_INCLUDE_DIR}

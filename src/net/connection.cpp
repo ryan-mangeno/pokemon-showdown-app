@@ -18,7 +18,7 @@ namespace pkm::net {
             PK_ERROR("Failed to resolve host {0} at port {1}: {2}", host, port, ec.message());
             return ec;
         } else {
-            PK_INFO("Resolves host {0} at port {1}", host, port);
+            PK_INFO("Resolved host {0} at port {1}", host, port);
         }
         return results;
     }

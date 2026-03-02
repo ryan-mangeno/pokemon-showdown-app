@@ -11,10 +11,12 @@ namespace net       = boost::asio;
 namespace ssl       = net::ssl;
 using tcp = net::ip::tcp;
 
+#include <util/util.h>
+#include <util/json_loader.h>
+
 int main() {
-    const std::string host = "sim.smogon.com";
-    const std::string port = "443";
-    const std::string path = "/showdown/websocket";
+    
+    auto [port, host, path] = pkm::ConfigLoader::load();
 
     net::io_context ioc;
     pkm::net::SSLContext& ssl_ctx = pkm::net::SSLContext::get();
@@ -24,7 +26,7 @@ int main() {
     websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws(ioc, ssl_ctx.native_ctx());
 
     // SNI
-    SSL_set_tlsext_host_name(ws.next_layer().native_handle(), host.c_str());
+    SSL_set_tlsext_host_name(ws.next_layer().native_handle(), host.data());
 
     // Connect
     auto results = resolver.resolve(host, port);

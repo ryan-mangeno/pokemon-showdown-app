@@ -9,11 +9,18 @@ find_package(OpenSSL REQUIRED)
 
 file(GLOB_RECURSE SRC_FILES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
+set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
+set(JSON_INC   "${VENDOR_DIR}/nlohmann/include")
+
 add_executable(ps-cli ${SRC_FILES})
+
+target_compile_definitions(ps-cli PRIVATE PROJECT_ROOT="${CMAKE_SOURCE_DIR}/")
 
 target_include_directories(ps-cli
   PRIVATE ${Boost_INCLUDE_DIRS} 
           ${CMAKE_SOURCE_DIR}/src
+          ${VENDOR_DIR}
+          ${JSON_INC}
 )
 
 

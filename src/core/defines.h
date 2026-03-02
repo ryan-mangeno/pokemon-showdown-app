@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 
 namespace pkm {
     
@@ -19,6 +20,5 @@ namespace pkm {
     Scope<T> MakeScope(Args&&... args) {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
-
-
+    
 } // namespace pkm

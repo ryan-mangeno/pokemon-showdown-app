@@ -4,3 +4,6 @@
 [submodule "vendor/pokemon-showdown-client"]
 	path = vendor/pokemon-showdown-client
 	url = https://github.com/smogon/pokemon-showdown-client.git
+[submodule "vendor/nlohmann"]
+	path = vendor/nlohmann
+	url = https://github.com/nlohmann/json.git

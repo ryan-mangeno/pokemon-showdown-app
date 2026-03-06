@@ -15,11 +15,14 @@ using tcp = net::ip::tcp;
 #include <util/json_loader.h>
 #include <core/logger.h>
 #include <net/connection.h>
+#include <net/netconfig.h>
 
 int main() {
 
-    pkm::Logger::init();   
-    auto [port, host, path] = pkm::ConfigLoader::load();
+    pkm::Logger::init();
+    pkm::net::NetConfig ncfg;
+    pkm::JsonLoader::load(ncfg, NET_CONFIG_PATH.c_str());
+    auto [port, host, path] = ncfg;
 
     pkm::net::SSLContext& ssl_ctx = pkm::net::SSLContext::get();
     ssl_ctx.init();

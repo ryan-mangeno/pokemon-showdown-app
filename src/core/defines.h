@@ -21,4 +21,12 @@ namespace pkm {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }
     
+    // for loading json for different config files
+    template<typename Derived>
+    struct Config { 
+        auto as_tuple() {
+            return static_cast<Derived*>(this)->as_tuple_impl();
+        }
+    };
+    
 } // namespace pkm

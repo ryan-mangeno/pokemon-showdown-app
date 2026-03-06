@@ -1,5 +1,5 @@
 {
-  "ps_server_url"     : "sim.smogon.com",
   "ps_server_port"    : "443",
+  "ps_server_url"     : "sim.smogon.com",
   "ps_websocket_path" : "/showdown/websocket"
 }

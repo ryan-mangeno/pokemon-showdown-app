@@ -1,43 +1,45 @@
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <string>
-#include <iostream>
-#include <stdexcept>
-#include <string>
+#pragma once
 
 #include "util.h"
 
+#include <core/defines.h>
+#include <string>
+
+#include <nlohmann/json.hpp>
+#include <fstream>
+#include <tuple>
+#include <core/logger.h>
+
+
 namespace pkm {
 
-// this updates if changes are made to config/config.json in repo root
-    struct Config {
-        std::string ps_server_port;
-        std::string ps_server_url;
-        std::string ps_websocket_path; 
-        
-        Config() = default;
-    };
-
-    class ConfigLoader {
+    class JsonLoader {
     public:
-        static Config load(const std::string& path = ROOT_DIR) {
-            const std::filesystem::path cfg_path = config_path(); 
 
-            std::ifstream file(cfg_path);
+        // Config is base class to load config types
+        // derived classes must define std::tie method
+        template <typename ConfigT>
+        static void load(ConfigT& cfg, const char* pth) {
+            std::ifstream file(pth);
             if (!file.is_open()) {
-                // TODO: Log
-                return Config();
+                PK_ERROR("Could not open {} during json load!", pth);
+                return;
             }
-    
+            
             nlohmann::json j;
             file >> j;
-
-            Config cfg;
-            cfg.ps_server_port    = j.at("ps_server_port").get<std::string>();
-            cfg.ps_server_url     = j.at("ps_server_url").get<std::string>();
-            cfg.ps_websocket_path = j.at("ps_websocket_path").get<std::string>();
             
-            return cfg;
+            std::vector<nlohmann::json> values;
+            for (auto& [key, value] : j.items()) {
+                values.emplace_back(value);
+            }
+            
+            size_t index = 0;
+    
+            std::apply([&](auto&&... args){
+                ((args = values.at(index++).get<std::decay_t<decltype(args)>>()), ...);
+            }, cfg.as_tuple());
+    
         }
     };
 

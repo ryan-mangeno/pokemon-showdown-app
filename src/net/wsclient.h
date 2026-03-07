@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "net/connection.h"
 #include "net/sslcontext.h"
 #include "net/types.h"
@@ -15,6 +16,10 @@ namespace pkm::net {
     class WsClient {
         using ResolverResults = boost::asio::ip::tcp::resolver::results_type;
         using IOc = boost::asio::io_context;
+        using BoostErr = boost::beast::error_code;
+        using BoostWriteBuffer = boost::asio::const_buffer;
+        using BoostReadBuffer = boost::beast::flat_buffer;
+
         public:
             WsClient(const NetConfig& config);
             ~WsClient();

@@ -35,11 +35,20 @@ namespace pkm::net {
     }
 
     void WsClient::send(const std::string& message) {
-       // TODO: 
+       if (!m_websocket || !m_websocket->is_open()) {
+           PK_ERROR("Cannot send, websocket is not open");
+           return;
+       } 
+
+       BoostErr ec;
+       m_websocket->write(boost::asio::buffer(message), ec);
+       if (ec) {
+           PK_ERROR("Failed to send message {}", message);
+       }
     }
 
     std::string WsClient::receive() {
-        boost::beast::flat_buffer buf;
+        BoostReadBuffer buf;
         m_websocket->read(buf);
         std::string msg = boost::beast::buffers_to_string(buf.data());
         return msg;
@@ -48,7 +57,7 @@ namespace pkm::net {
     void WsClient::close() {
         if (!m_websocket) return;
 
-        boost::beast::error_code ec;
+        BoostErr ec;
 
         if (!m_websocket->is_open()) {
             PK_INFO("WebSocket already closed");

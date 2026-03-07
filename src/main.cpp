@@ -1,9 +1,10 @@
 #include "pkmpch.h"
 
-#include <util/json_loader.h>
-#include <core/logger.h>
-#include <net/netconfig.h>
-#include <net/wsclient.h>
+#include "util/json_loader.h"
+#include "core/logger.h"
+#include "net/netconfig.h"
+#include "net/wsclient.h"
+#include "protocol/parser.h"
 
 int main() {
 
@@ -13,7 +14,14 @@ int main() {
 
     pkm::net::WsClient client(ncfg);
     if (client.connect()) {
-        PK_INFO("Recieved:\n{0}", client.receive());
+        auto msgs = pkm::protocol::parse(client.receive());
+        for (auto& msg : msgs) {
+            PK_INFO("Room: {0}", msg.room_id);
+            PK_INFO("Type: {0}", msg.type);
+            for (auto& arg : msg.args) {
+                PK_INFO("Arg: {0}", arg);
+            }
+        }
     }
 
     client.close();

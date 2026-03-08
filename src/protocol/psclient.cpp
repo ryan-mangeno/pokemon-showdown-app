@@ -32,7 +32,8 @@ namespace pkm::protocol {
     }
 
     void PsClient::shutdown() {
-        m_ws->close();        
+        m_ws->close();   
+        m_connected = false;
     }
 
     void PsClient::run() {

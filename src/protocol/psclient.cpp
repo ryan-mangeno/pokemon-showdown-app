@@ -104,9 +104,24 @@ namespace pkm::protocol {
         msg.print();
     
         if (j.contains("forceSwitch")) {
-            m_ws->send(m_battle_room + "|/choose switch 1");
+            auto& side = j["side"]["pokemon"];
+            for (int i=0; i<side.size(); ++i) {
+                // force switch to valid pokemon
+                // TODO: let user pick
+                std::string condition = side[i]["condition"];
+                if (condition != "0 fnt") {
+                    m_ws->send(m_battle_room + "|/choose switch " + std::to_string(i+1));
+                }
+            }
         } else if (j.contains("active")) {
-            m_ws->send(m_battle_room + "|/choose move 1");
+            auto& moves = j["active"][0]["moves"];
+            // just force select any valid move
+            // TODO: let user pick move
+            for (int i=0 ; i<moves.size(); ++i) {
+                if (!moves[i]["disabled"].get<bool>()) {
+                    m_ws->send(m_battle_room + "|/choose move " + std::to_string(i+1)); 
+                }
+            }
         }
     }
 

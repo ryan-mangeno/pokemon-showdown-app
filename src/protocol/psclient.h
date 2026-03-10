@@ -23,14 +23,16 @@ namespace pkm::protocol {
             void on_chall_str(const Message& msg);
             void on_update_search(const Message& msg);
             void on_battle(const Message& msg);
+            void on_win(const Message& msg);
             void on_request(const Message& msg);
 
         private:
             Ref<pkm::net::WsClient> m_ws;
-
+            
+            bool m_initialized;
             bool m_connected;
             bool m_in_battle;
-            int32_t m_battle_room;
+            std::string m_battle_room;
 
     };
     

@@ -11,7 +11,7 @@
 
 namespace pkm::protocol {
 
-    PsClient::PsClient() : m_initialized(false), m_in_battle(false), m_battle_room(""), m_connected(false), m_ws(nullptr) {}
+    PsClient::PsClient() : m_initialized(false), m_in_battle(false), m_searching(false), m_battle_room(""), m_connected(false), m_ws(nullptr) {}
 
     bool PsClient::init() {
         if (m_initialized) {
@@ -38,17 +38,24 @@ namespace pkm::protocol {
     }
 
     void PsClient::run() {
-        if (m_ws->connect()) {
-            m_connected = true;
-            while (m_connected) {
-                auto msgs = parse_message(m_ws->receive());
-                for (auto& msg : msgs) {
-                    dispatch(msg);
-                }
-            }
-        } else {
-            PK_ERROR("Failed to connect PsClient!");
+
+        if (!m_ws->connect()) {
+            PK_ERROR("Failed to run Client!");
+            return;
         }
+        
+        m_connected = true;
+        m_network_thread = std::thread(&PsClient::network_loop, this);
+
+        while (m_connected) {
+            Message msg;
+            if (m_inbound.pop(msg)) {
+                if (on_message) on_message(msg);
+                dispatch(msg);
+            }
+        }
+
+        m_network_thread.join();
     }
     
     void PsClient::dispatch(const Message& msg) {
@@ -61,9 +68,11 @@ namespace pkm::protocol {
     }
 
     void PsClient::on_update_user(const Message& msg) {
-        PK_TRACE("On Update");
         PK_INFO("Username: {}", msg.args[0]);
-        m_ws->send("|/search gen9randombattle");
+        if (!m_in_battle && !m_searching) {
+            m_searching = true;
+            send("|/search gen9randombattle");
+        }
     }
 
     void PsClient::on_chall_str(const Message& msg) {
@@ -78,14 +87,14 @@ namespace pkm::protocol {
             m_battle_room = j["games"].begin().key();
             m_in_battle = true;
             PK_INFO("Battle room assigned: {}", m_battle_room);
-            m_ws->send("|/join " + m_battle_room);
+            send("|/join " + m_battle_room);
         } 
     }
 
     void PsClient::on_battle(const Message& msg) {
         PK_TRACE("On Battle");
         m_battle_room = msg.args[0];
-        m_ws->send("|/join " + m_battle_room);
+        send("|/join " + m_battle_room);
     }
 
     void PsClient::on_win(const Message& msg) {
@@ -96,33 +105,34 @@ namespace pkm::protocol {
     void PsClient::on_request(const Message& msg) {
         PK_TRACE("On Request");
 
-        if (msg.args[0].empty()) return;
-        
-        auto j = nlohmann::json::parse(msg.args[0]);
+    }
 
-    
-        if (j.contains("forceSwitch")) {
-            auto& side = j["side"]["pokemon"];
-            for (int i=0; i<side.size(); ++i) {
-                // force switch to valid pokemon
-                // TODO: let user pick
-                std::string condition = side[i]["condition"];
-                if (condition != "0 fnt") {
-                    m_ws->send(m_battle_room + "|/choose switch " + std::to_string(i+1));
-                }
+    void PsClient::network_loop() {
+        while (m_connected) {
+            std::string out;
+            while (m_outbound.pop(out)) {
+                PK_INFO("Popped outbound, network sending: {}", out);
+                m_ws->send(out);
             }
-        } else if (j.contains("active")) {
-            auto& moves = j["active"][0]["moves"];
-            // just force select any valid move
-            // TODO: let user pick move
-            for (int i=0 ; i<moves.size(); ++i) {
-                if (!moves[i]["disabled"].get<bool>()) {
-                    m_ws->send(m_battle_room + "|/choose move " + std::to_string(i+1)); 
-                }
+
+            auto raw = m_ws->receive();
+            if (raw.empty()) { PK_TRACE("EMPTY RECV!"); m_connected = false; break; }
+            
+            auto msgs = protocol::parse_message(raw);
+            for (auto& msg : msgs) {
+                PK_INFO("Pushing to inbound : {}", raw);
+                m_inbound.push(msg);
             }
+
         }
     }
 
- 
-    
+    void PsClient::send(const std::string& msg) {
+        // TODO: optimize this, we shouldnt be copying 
+        std::string msg_cpy = msg;
+        bool pushed = m_outbound.push(msg_cpy);
+        PK_INFO("Send pushed to outbound: {} | success: {}", msg, pushed);
+
+    }
+
 }

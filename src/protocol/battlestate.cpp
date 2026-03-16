@@ -70,7 +70,7 @@ namespace pkm::protocol {
                     pkm.moves.push_back(m.get<std::string>());
                 }
 
-                m_your_team.push_back(std::move(pkm));
+                m_your_team.emplace_back(pkm);
             }
         }
 

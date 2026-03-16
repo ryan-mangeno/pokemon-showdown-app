@@ -45,14 +45,16 @@ namespace pkm::protocol {
             void apply_hp(const Message& msg);
             void apply_faint(const Message& msg);
             void apply_switch(const Message& msg);
-            
-            std::string m_room_id;
+
+        private:
+            bool m_force_switch;
             int m_turn;
+            std::string m_room_id;
             std::string m_your_name;
             std::string m_opponent_name;
             std::vector<Pokemon> m_your_team;
             std::vector<Pokemon> m_opponent_team;
             std::vector<MoveOption> m_available_moves;
-            bool m_force_switch;
+
     };
 }

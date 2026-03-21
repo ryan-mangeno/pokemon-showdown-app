@@ -37,6 +37,7 @@ namespace pkm::core {
                 // empty
                 if (head == tail) return false;
                 
+                // to avoid abunch of copies we just move 
                 out = std::move(m_queue[head]);
                 head = (head + 1) % m_capacity;
 

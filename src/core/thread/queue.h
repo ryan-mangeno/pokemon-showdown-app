@@ -7,7 +7,16 @@
 #include <utility>
 #include <thread>
 
-namespace pkm::core {
+namespace pkm {
+
+
+    #ifdef __cpp_lib_hardware_interference_size
+        using std::hardware_destructive_interference_size;
+    #else
+        // 64 bytes is the standard cache line size for almost all modern CPUs
+        constexpr size_t hardware_destructive_interference_size = 64;
+    #endif
+
 
     template <typename T>
     class SPSCQueue {
@@ -46,11 +55,11 @@ namespace pkm::core {
             }
         
         private:
+            size_t m_capacity;
             std::vector<T> m_queue;
             
-            size_t m_capacity;
-            std::atomic<size_t> m_head;
-            std::atomic<size_t> m_tail;
+            alignas(hardware_destructive_interference_size) std::atomic<size_t> m_head;
+            alignas(hardware_destructive_interference_size) std::atomic<size_t> m_tail;
     };
     
 

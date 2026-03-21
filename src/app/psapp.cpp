@@ -4,6 +4,7 @@
 #include "protocol/parser.h"
 #include "input/cl_input.h"
 #include "core/logger.h"
+#include "core/event/key_event.h"
 
 namespace pkm {
 
@@ -16,12 +17,26 @@ namespace pkm {
             return false;
         }
 
-        m_input = MakeScope<CLInput>([this](const std::string& response) {
-            // TODO: temporary to get input and cli working
-            PK_INFO("Input from app: {}", response);
-            m_client->send(m_battle_room + "|/choose move " + response);
-        });
-
+        m_input = MakeScope<CLInput>();
+        m_input->set_callback ( [this](Event& e) {
+            EventDispatcher dispatcher(e);
+            dispatcher.Dispatch<KeyTypedEvent>([this](KeyTypedEvent& e) {
+                char c = e.get_keycode();
+                if (c == '\n') {
+                    // submit buffer
+                    m_client->send(m_battle_room + "|/choose move " + m_input_buffer);
+                    m_input_buffer.clear();
+                } else if (c == 127) {
+                    // backspace
+                    if (!m_input_buffer.empty()) m_input_buffer.pop_back();
+                } else {
+                    m_input_buffer += c;
+                }
+                return true;
+            });
+        } );
+        
+        // TODO: change to event system like input
         m_client->on_message = [this](const protocol::Message& msg) {
             on_message(msg);
         };
@@ -36,9 +51,9 @@ namespace pkm {
     }
 
     void PsApp::shutdown() {
-        m_running = false;
         m_input->stop();
         m_client->shutdown();
+        m_running = false;
     }
 
     void PsApp::on_message(const protocol::Message& msg) {

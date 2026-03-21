@@ -1,6 +1,7 @@
 #pragma once
 
 #include "input.h"
+#include "core/event/event.h"
 
 #include <thread>
 #include <mutex>
@@ -8,22 +9,29 @@
 #include <atomic>
 #include <functional>
 
+
 namespace pkm {
 
     class CLInput : public Input {
+
     public:
-        CLInput(std::function<void(const std::string&)> on_response);
-        ~CLInput();
+        CLInput();
         
         void start() override;
         void stop() override;
         void request(const std::string& prompt) override;
 
+        inline void set_callback(const EventCallbackFn& callback) override {
+            m_callback = callback;
+        };
+
     private:
         void run();
+    
+    private:
 
-        std::function<void(const std::string&)> m_on_response;
-        
+        EventCallbackFn m_callback;
+
         std::thread m_thread;
         std::mutex m_mutex;
         std::condition_variable m_cv;

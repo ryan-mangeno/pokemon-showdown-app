@@ -2,17 +2,14 @@
 
 #include "cl_input.h"
 #include "core/logger.h"
+#include "core/event/key_event.h"
 
 #include <iostream>
 
 namespace pkm {
 
-    CLInput::CLInput(std::function<void(const std::string&)> on_response)
-        : m_on_response(on_response), m_prompt("") {}
-
-    CLInput::~CLInput() {
-        stop();
-    }
+    CLInput::CLInput()
+        : m_prompt(""), m_running(false) {}
 
     void CLInput::start() {
         m_running = true;
@@ -50,11 +47,14 @@ namespace pkm {
 
             // prompt user and read response
             PK_INFO("{}", prompt.c_str());
-            std::string response;
-            // TODO: can result in zombie thread if time limit runs out
-            // this needs to be more modular
-            if (std::getline(std::cin, response)) {
-                if (m_on_response) m_on_response(response);
+            char c;
+            while (std::cin.get(c)) {
+                if (m_callback) {
+                    KeyTypedEvent e(static_cast<int>(c));
+                    m_callback(e);
+                }
+                // stop reading on enter, wait for next request
+                if (c == '\n') break;
             }
         }
     }

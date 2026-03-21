@@ -3,6 +3,8 @@
 #include <memory>
 #include <string_view>
 
+#define BIT(x) (1 << x )
+
 namespace pkm {
     
     template <typename T>
@@ -28,5 +30,6 @@ namespace pkm {
             return static_cast<Derived*>(this)->as_tuple_impl();
         }
     };
-    
+
+
 } // namespace pkm

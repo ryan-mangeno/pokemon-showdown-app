@@ -52,8 +52,8 @@ namespace pkm::protocol {
 
             // Network thread (sends)  ->  SPSCQueue<Message>   ->  Main thread    (reads) <inbound>
             // Main thread    (sends)  ->  SPSCQueue<string>    ->  Network thread (reads) <outbound>
-            pkm::core::SPSCQueue<Message>      m_inbound{256};
-            pkm::core::SPSCQueue<std::string>  m_outbound{64};
+            pkm::SPSCQueue<Message>      m_inbound{256};
+            pkm::SPSCQueue<std::string>  m_outbound{64};
             std::thread m_network_thread;
 
     };

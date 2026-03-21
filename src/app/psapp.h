@@ -27,7 +27,9 @@ namespace pkm {
         Scope<Input>                m_input;
         protocol::BattleState       m_state;
 
+        // TODO: decide how to move these out
         std::string m_battle_room;
+        std::string m_input_buffer;
         bool m_running;
     };
 

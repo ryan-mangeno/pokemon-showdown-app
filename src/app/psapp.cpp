@@ -23,8 +23,19 @@ namespace pkm {
             dispatcher.Dispatch<KeyTypedEvent>([this](KeyTypedEvent& e) {
                 char c = e.get_keycode();
                 if (c == '\n') {
-                    // submit buffer
-                    m_client->send(m_battle_room + "|/choose move " + m_input_buffer);
+                    if (m_input_buffer == "5") {
+                        PK_INFO("--- ENEMY TEAM ---");
+                        for (const auto& p : m_state.opponent_team()) {
+                            PK_INFO("{} | {}/{} HP | Active: {}", p.name, p.hp_current, p.hp_max, p.active);
+                        }
+                    } else if (m_input_buffer == "6") {
+                        PK_INFO("--- YOUR TEAM ---");
+                        for (const auto& p : m_state.your_team()) {
+                            PK_INFO("{} | {}/{} HP | Active: {}", p.name, p.hp_current, p.hp_max, p.active);
+                        }
+                    } else if (!m_input_buffer.empty()) {
+                        m_client->send(m_battle_room + "|/choose move " + m_input_buffer);
+                    }
                     m_input_buffer.clear();
                 } else if (c == 127) {
                     // backspace
@@ -57,19 +68,16 @@ namespace pkm {
     }
 
     void PsApp::on_message(const protocol::Message& msg) {
+        if (!msg.room_id.empty() && msg.room_id.length() > m_battle_room.length()) {
+            m_battle_room = msg.room_id;
+        }
         m_state.apply(msg);
         if (msg.type == "request") {
             on_battle_request(msg);
-        } else if (msg.type == "updatesearch" && !msg.args[0].empty()) {
-            auto j = nlohmann::json::parse(msg.args[0]);
-            if (!j["games"].is_null()) {
-                m_battle_room = j["games"].begin().key();
-            }
-        }
+        } 
     }
 
     void PsApp::on_battle_request(const protocol::Message& msg) {
-        // TODO: formatting for now
         std::string prompt = "Your turn!\n";
         auto& moves = m_state.available_moves();
         for (size_t i = 0; i < moves.size(); i++) {
@@ -79,6 +87,10 @@ namespace pkm {
             if (moves[i].disabled) prompt += " [DISABLED]";
             prompt += "\n";
         }
+        
+        // Add the team info options
+        prompt += "\n[5] Enemy Team Info\n[6] Your Team Info\n";
+        
         m_input->request(prompt);
     }
 }

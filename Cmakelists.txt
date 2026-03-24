@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ps-cli LANGUAGES CXX)
+project(ps-cli LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,26 +10,32 @@ find_package(OpenSSL REQUIRED)
 file(GLOB_RECURSE SRC_FILES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
-set(JSON_INC   "${VENDOR_DIR}/nlohmann/include")
-set(SPDLOG_INC "${VENDOR_DIR}/spdlog/include")
+set(JSON_INC        "${VENDOR_DIR}/nlohmann/include")
+set(SPDLOG_INC      "${VENDOR_DIR}/spdlog/include")
+set(LINENOISE_DIR   "${VENDOR_DIR}/linenoise")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Debug build: defining PK_DEBUG macro")
     add_compile_definitions(PK_DEBUG)
 endif()
 
+# linenoise is a C library, build as static, disable warnings
+add_library(linenoise STATIC ${LINENOISE_DIR}/linenoise.c)
+target_include_directories(linenoise PUBLIC ${LINENOISE_DIR})
+# suppress warnings from linenoise so they don't pollute  build
+target_compile_options(linenoise PRIVATE -w)
+
 add_executable(ps-cli ${SRC_FILES})
 
 target_compile_definitions(ps-cli PRIVATE PROJECT_ROOT="${CMAKE_SOURCE_DIR}/")
 
 target_include_directories(ps-cli
-  PRIVATE ${Boost_INCLUDE_DIRS} 
-          ${CMAKE_SOURCE_DIR}/src
-          ${VENDOR_DIR}
-          ${JSON_INC}
-          ${SPDLOG_INC}
+    PRIVATE ${Boost_INCLUDE_DIRS}
+            ${CMAKE_SOURCE_DIR}/src
+            ${VENDOR_DIR}
+            ${JSON_INC}
+            ${SPDLOG_INC}
+            ${LINENOISE_DIR}
 )
 
-
-target_link_libraries(ps-cli OpenSSL::SSL OpenSSL::Crypto pthread)
-
+target_link_libraries(ps-cli OpenSSL::SSL OpenSSL::Crypto pthread linenoise)

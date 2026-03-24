@@ -51,6 +51,7 @@ namespace pkm::protocol {
             Message msg;
             if (m_inbound.pop(msg)) {
                 if (on_message) on_message(msg);
+                PK_INFO("[INBOUND FROM SERVER] Type: {}", msg.type);
                 dispatch(msg);
             }
         }
@@ -69,22 +70,25 @@ namespace pkm::protocol {
 
     void PsClient::on_update_user(const Message& msg) {
         PK_INFO("Username: {}", msg.args[0]);
-        if (!m_in_battle && !m_searching) {
-            m_searching = true;
-            send("|/search gen9randombattle");
-        }
     }
 
     void PsClient::on_chall_str(const Message& msg) {
+        if (!m_in_battle && !m_searching) {
+            PK_INFO("Session verified by challstr. Searching for match...");
+            m_searching = true;
+            send("|/search gen9randombattle");
+        }
     }
 
     void PsClient::on_update_search(const Message& msg) {
         if (msg.args[0].empty()) return;
         
         auto j = nlohmann::json::parse(msg.args[0]);
-        if (!j["games"].is_null() && !m_in_battle) {
+        
+        if (j.contains("games") && !j["games"].is_null() && !m_in_battle) {
             m_battle_room = j["games"].begin().key();
             m_in_battle = true;
+            m_searching = false;
             PK_INFO("Battle room assigned: {}", m_battle_room);
             send("|/join " + m_battle_room);
         } 
@@ -104,27 +108,33 @@ namespace pkm::protocol {
     }
 
     void PsClient::network_loop() {
+        PK_INFO("Network thread started.");
         while (m_connected) {
             std::string out;
             while (m_outbound.pop(out)) {
+                PK_TRACE("OUTBOUND >>> {}", out);
                 m_ws->send(out);
             }
 
             auto raw = m_ws->receive();
-            if (raw.empty()) { m_connected = false; break; }
+            if (raw.empty()) { continue;  }
             
+            PK_TRACE("INBOUND <<< raw data received ({} bytes)", raw.length());
+
             auto msgs = protocol::parse_message(raw);
             for (auto& msg : msgs) {
+                PK_TRACE("Parsed Message: type={}", msg.type);
                 m_inbound.push(msg);
             }
-
         }
     }
 
     void PsClient::send(const std::string& msg) {
-        // TODO: optimize this, we shouldnt be copying 
+        // TODO: optimize
         std::string msg_cpy = msg;
-        bool pushed = m_outbound.push(msg_cpy);
+        if (!m_outbound.push(msg_cpy)) {
+            PK_ERROR("FAILED TO PUSH TO OUTBOUND QUEUE! Queue might be full. Command: {}", msg);
+        } 
     }
 
 }

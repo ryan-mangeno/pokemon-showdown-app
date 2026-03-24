@@ -22,11 +22,14 @@ namespace pkm::protocol {
     }
 
     Pokemon* BattleState::find_pokemon(const Ident& ident) {
-        std::vector<Pokemon>& team = (ident.side == "p1") ? m_your_team : m_opponent_team;
+        std::vector<Pokemon>& team = (ident.side == m_your_side) ? m_your_team : m_opponent_team;
+
         for (Pokemon& p : team) {
             if (p.name == ident.name) return &p;
         }
+
         PK_ERROR("Pokemon not found: {}", ident.name);
+
         return nullptr;
     }
 
@@ -48,17 +51,31 @@ namespace pkm::protocol {
         if (msg.args[0].empty()) return;
         const auto j = nlohmann::json::parse(msg.args[0]);
 
-        // load team on first request
-        if (m_your_team.empty()) {
+        if (m_your_side.empty()) {
+            m_your_team.clear(); 
             m_your_name = j["side"]["name"].get<std::string>();
+            m_your_side = j["side"]["id"].get<std::string>(); // Grabs "p1" or "p2"
+
+            // clean up the opponent team
+            // If our lead pokemon was accidentally put on the opponents team 
+            // during the opening switches, this erases it
+            m_opponent_team.erase(
+                std::remove_if(m_opponent_team.begin(), m_opponent_team.end(),
+                    [this](const Pokemon& p) {
+                        // check if the pokemon actually belongs to us
+                        return parse_ident(p.ident).side == m_your_side;
+                    }),
+                m_opponent_team.end()
+            );
+
+            PK_INFO("Your Team:");
             for (auto& p : j["side"]["pokemon"]) {
                 Pokemon pkm;
                 pkm.ident   = p["ident"].get<std::string>();
                 pkm.name    = parse_ident(pkm.ident).name;
-                pkm.active  = p["active"].get<bool>();
+                pkm.active  = p["active"].get<bool>(); 
                 pkm.fainted = false;
 
-                // parse hp from condition "259/259"
                 std::string condition = p["condition"].get<std::string>();
                 size_t slash = condition.find('/');
                 if (slash != std::string::npos) {
@@ -69,7 +86,8 @@ namespace pkm::protocol {
                 for (auto& m : p["moves"]) {
                     pkm.moves.push_back(m.get<std::string>());
                 }
-
+                
+                PK_INFO(" - {}", pkm.name.c_str());
                 m_your_team.emplace_back(pkm);
             }
         }
@@ -116,8 +134,8 @@ namespace pkm::protocol {
     void BattleState::apply_switch(const Message& msg) {
         // args[0] = ident, args[1] = details, args[2] = condition
         Ident ident = parse_ident(msg.args[0]);
-        std::vector<Pokemon>& team = (ident.side == "p1") ? m_your_team : m_opponent_team;
-
+        std::vector<Pokemon>& team = (ident.side == m_your_side) ? m_your_team : m_opponent_team;
+        
         // deactivate all
         for (Pokemon& p : team) p.active = false;
 

@@ -51,6 +51,7 @@ namespace pkm::protocol {
             int m_turn;
             std::string m_room_id;
             std::string m_your_name;
+            std::string m_your_side;
             std::string m_opponent_name;
             std::vector<Pokemon> m_your_team;
             std::vector<Pokemon> m_opponent_team;

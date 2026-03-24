@@ -6,6 +6,8 @@
 #include "util/json_loader.h"
 #include "net/sslcontext.h"
 
+#include <boost/beast/core.hpp>
+
 namespace pkm::net {
     
     WsClient::WsClient(const NetConfig& config) : m_ioc(), m_config(config), m_websocket(nullptr) {
@@ -49,9 +51,25 @@ namespace pkm::net {
 
     std::string WsClient::receive() {
         BoostReadBuffer buf;
-        m_websocket->read(buf);
-        std::string msg = boost::beast::buffers_to_string(buf.data());
-        return msg;
+        boost::system::error_code ec;
+
+        boost::beast::get_lowest_layer(*m_websocket).expires_after(std::chrono::milliseconds(50));
+
+        m_websocket->read(buf, ec);
+
+        // if it didnt finish, cancel the operation
+        if (ec) {
+            if (ec == boost::beast::error::timeout) {
+                // reset the timer so future reads dont instantly time out
+                boost::beast::get_lowest_layer(*m_websocket).expires_never();
+                return ""; 
+            } else if (ec != boost::asio::error::operation_aborted) {
+                PK_ERROR("WS Read Error: {}", ec.message());
+            }
+            return "";
+        }
+
+        return boost::beast::buffers_to_string(buf.data());
     }
 
     void WsClient::close() {

@@ -10,3 +10,6 @@
 [submodule "vendor/spdlog"]
 	path = vendor/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "vendor/linenoise"]
+	path = vendor/linenoise
+	url = https://github.com/antirez/linenoise

@@ -76,7 +76,6 @@ namespace pkm::protocol {
     }
 
     void PsClient::on_chall_str(const Message& msg) {
-        PK_TRACE("On Chall");
     }
 
     void PsClient::on_update_search(const Message& msg) {
@@ -92,7 +91,6 @@ namespace pkm::protocol {
     }
 
     void PsClient::on_battle(const Message& msg) {
-        PK_TRACE("On Battle");
         m_battle_room = msg.args[0];
         send("|/join " + m_battle_room);
     }
@@ -103,24 +101,20 @@ namespace pkm::protocol {
     }
 
     void PsClient::on_request(const Message& msg) {
-        PK_TRACE("On Request");
-
     }
 
     void PsClient::network_loop() {
         while (m_connected) {
             std::string out;
             while (m_outbound.pop(out)) {
-                PK_INFO("Popped outbound, network sending: {}", out);
                 m_ws->send(out);
             }
 
             auto raw = m_ws->receive();
-            if (raw.empty()) { PK_TRACE("EMPTY RECV!"); m_connected = false; break; }
+            if (raw.empty()) { m_connected = false; break; }
             
             auto msgs = protocol::parse_message(raw);
             for (auto& msg : msgs) {
-                PK_INFO("Pushing to inbound : {}", raw);
                 m_inbound.push(msg);
             }
 
@@ -131,8 +125,6 @@ namespace pkm::protocol {
         // TODO: optimize this, we shouldnt be copying 
         std::string msg_cpy = msg;
         bool pushed = m_outbound.push(msg_cpy);
-        PK_INFO("Send pushed to outbound: {} | success: {}", msg, pushed);
-
     }
 
 }

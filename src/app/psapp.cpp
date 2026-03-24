@@ -57,7 +57,6 @@ namespace pkm {
     }
 
     void PsApp::on_message(const protocol::Message& msg) {
-        PK_INFO("PsApp on_message: {}", msg.type);
         m_state.apply(msg);
         if (msg.type == "request") {
             on_battle_request(msg);

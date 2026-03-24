@@ -14,6 +14,9 @@ set(JSON_INC        "${VENDOR_DIR}/nlohmann/include")
 set(SPDLOG_INC      "${VENDOR_DIR}/spdlog/include")
 set(LINENOISE_DIR   "${VENDOR_DIR}/linenoise")
 
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Debug build: defining PK_DEBUG macro")
     add_compile_definitions(PK_DEBUG)
@@ -38,4 +41,4 @@ target_include_directories(ps-cli
             ${LINENOISE_DIR}
 )
 
-target_link_libraries(ps-cli OpenSSL::SSL OpenSSL::Crypto pthread linenoise)
+target_link_libraries(ps-cli OpenSSL::SSL OpenSSL::Crypto pthread linenoise ${CURL_LIBRARIES})

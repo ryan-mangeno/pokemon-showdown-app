@@ -23,6 +23,8 @@ namespace pkm::protocol {
             std::function<void(const protocol::Message&)> on_message;
         
         private:
+            void login();
+
             void dispatch(const Message& msg);
             void on_update_user(const Message& msg);
             void on_chall_str(const Message& msg);
@@ -40,9 +42,9 @@ namespace pkm::protocol {
             bool m_searching;
             // TODO: both should be atomic + handle setting logic
             bool m_connected;
+            bool m_logged_in;
             bool m_in_battle;
             
-
             std::string m_battle_room;
 
             // at a high level, the networking thread reads inbound requests, main thread reads those

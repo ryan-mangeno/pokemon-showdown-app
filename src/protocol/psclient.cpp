@@ -1,11 +1,15 @@
 #include <pkmpch.h>
 
+#include <cstdlib>
+
 #include "psclient.h"
 #include "util/json_loader.h"
 #include "core/logger.h"
 #include "net/netconfig.h"
 #include "net/wsclient.h"
 #include "protocol/parser.h"
+#include "util/env_loader.h"
+#include "net/auth.h"
 
 #include <nlohmann/json.hpp>
 
@@ -18,6 +22,8 @@ namespace pkm::protocol {
             PK_WARN("Already connected, no need for initializion twice");
             return true;
         }
+
+        pkm::load_env("config/.env");
         
         pkm::net::NetConfig ncfg;
         pkm::JsonLoader::load(ncfg, NET_CONFIG_PATH.c_str());
@@ -51,13 +57,29 @@ namespace pkm::protocol {
             Message msg;
             if (m_inbound.pop(msg)) {
                 if (on_message) on_message(msg);
-                PK_INFO("[INBOUND FROM SERVER] Type: {}", msg.type);
+                PK_TRACE("CLIENT: INBOUND >>> {}", msg.type);
                 dispatch(msg);
             }
         }
 
         m_network_thread.join();
     }
+
+    void PsClient::login() {
+        if (m_logged_in) {
+            // send chall str if we are already logged in
+        }
+
+        const char* user = std::getenv("PS_USERNAME");
+        const char* pass = std::getenv("PS_PASSWORD");
+
+        if (user && pass) {
+            PK_INFO("Logging in as: {}", user);
+
+        } else {
+            PK_ERROR("Login credentials missing from .env!");
+        }
+}
     
     void PsClient::dispatch(const Message& msg) {
         if (msg.type == "updateuser")        on_update_user(msg);
@@ -70,13 +92,24 @@ namespace pkm::protocol {
 
     void PsClient::on_update_user(const Message& msg) {
         PK_INFO("Username: {}", msg.args[0]);
+        send("|/search gen9randombattle");
     }
 
     void PsClient::on_chall_str(const Message& msg) {
+        
         if (!m_in_battle && !m_searching) {
-            PK_INFO("Session verified by challstr. Searching for match...");
-            m_searching = true;
-            send("|/search gen9randombattle");
+            std::string full_challstr = msg.args[0] + "|" + msg.args[1];
+            
+            std::string user = std::getenv("PS_USERNAME");
+            std::string pass = std::getenv("PS_PASSWORD");
+            std::string token = pkm::net::request_assertion(user, pass, full_challstr);
+
+            if (!token.empty()) {
+                PK_INFO("Verifying Challstr ...");
+                send("|/trn " + user + ",0," + token);
+            } else {
+                PK_ERROR("Unnable to request assertion ...");
+            }
         }
     }
 
@@ -109,32 +142,17 @@ namespace pkm::protocol {
 
     void PsClient::network_loop() {
         PK_INFO("Network thread started.");
-        while (m_connected) {
-            std::string out;
-            while (m_outbound.pop(out)) {
-                PK_TRACE("OUTBOUND >>> {}", out);
-                m_ws->send(out);
-            }
 
-            auto raw = m_ws->receive();
-            if (raw.empty()) { continue;  }
-            
-            PK_TRACE("INBOUND <<< raw data received ({} bytes)", raw.length());
+        // starting continuous read cycle, passing in inbound spsc queue and parser func
+        m_ws->start_read_loop(m_inbound, parse_message);
 
-            auto msgs = protocol::parse_message(raw);
-            for (auto& msg : msgs) {
-                PK_TRACE("Parsed Message: type={}", msg.type);
-                m_inbound.push(msg);
-            }
-        }
+        // run the asio event loop - this blocks and handles the strand/async work
+        m_ws->get_ioc().run(); 
     }
 
     void PsClient::send(const std::string& msg) {
-        // TODO: optimize
-        std::string msg_cpy = msg;
-        if (!m_outbound.push(msg_cpy)) {
-            PK_ERROR("FAILED TO PUSH TO OUTBOUND QUEUE! Queue might be full. Command: {}", msg);
-        } 
+        PK_TRACE("CLIENT: OUTBOUND >>> {}", msg);
+        m_ws->send(msg);
     }
 
 }

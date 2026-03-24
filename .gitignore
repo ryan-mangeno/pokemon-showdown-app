@@ -1,6 +1,9 @@
 # CMake build directory
 build/
 
+# env
+config/.env
+
 # CMake generated files
 CMakeCache.txt
 CMakeFiles/

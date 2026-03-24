@@ -6,11 +6,9 @@
 #include "util/json_loader.h"
 #include "net/sslcontext.h"
 
-#include <boost/beast/core.hpp>
-
 namespace pkm::net {
     
-    WsClient::WsClient(const NetConfig& config) : m_ioc(), m_config(config), m_websocket(nullptr) {
+    WsClient::WsClient(const NetConfig& config) : m_ioc(), m_config(config), m_websocket(nullptr), m_strand(boost::asio::make_strand(m_ioc)) {
         
         SSLContext& ssl_ctx = SSLContext::get();
         ssl_ctx.init();
@@ -37,39 +35,43 @@ namespace pkm::net {
     }
 
     void WsClient::send(const std::string& message) {
-       if (!m_websocket || !m_websocket->is_open()) {
-           PK_ERROR("Cannot send, websocket is not open");
-           return;
-       } 
+        std::string formatted_msg = message;
+        if (formatted_msg.back() != '\n') formatted_msg += '\n';
 
-       BoostErr ec;
-       m_websocket->write(boost::asio::buffer(message), ec);
-       if (ec) {
-           PK_ERROR("Failed to send message {}", message);
-       }
+        boost::asio::post(m_strand, [this, formatted_msg]() {
+            
+            bool write_in_progress = !m_internal_write_queue.empty();
+            m_internal_write_queue.push_back(formatted_msg);
+
+            if (!write_in_progress) {
+                do_write();
+            }
+        });
+    }
+
+    void WsClient::do_write() {
+        // write the first thing in our internal queue
+        m_websocket->async_write(
+            boost::asio::buffer(m_internal_write_queue.front()),
+            boost::asio::bind_executor(m_strand, [this](BoostErr ec, std::size_t) {
+                if (!ec) {
+                    m_internal_write_queue.pop_front();
+                    
+                    if (!m_internal_write_queue.empty()) {
+                        do_write();
+                    }
+                } else {
+                    PK_ERROR("Write error: {}", ec.message());
+                }
+            })
+        );
     }
 
     std::string WsClient::receive() {
         BoostReadBuffer buf;
-        boost::system::error_code ec;
-
-        boost::beast::get_lowest_layer(*m_websocket).expires_after(std::chrono::milliseconds(50));
-
-        m_websocket->read(buf, ec);
-
-        // if it didnt finish, cancel the operation
-        if (ec) {
-            if (ec == boost::beast::error::timeout) {
-                // reset the timer so future reads dont instantly time out
-                boost::beast::get_lowest_layer(*m_websocket).expires_never();
-                return ""; 
-            } else if (ec != boost::asio::error::operation_aborted) {
-                PK_ERROR("WS Read Error: {}", ec.message());
-            }
-            return "";
-        }
-
-        return boost::beast::buffers_to_string(buf.data());
+        m_websocket->read(buf);
+        std::string msg = boost::beast::buffers_to_string(buf.data());
+        return msg;
     }
 
     void WsClient::close() {

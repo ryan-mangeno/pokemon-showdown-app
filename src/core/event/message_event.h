@@ -12,8 +12,8 @@ namespace pkm {
             const protocol::Message& get_msg() const { return m_msg; }
             
             EVENT_CLASS_CATEGORY(EventCategoryApplication | EventCategoryBattle)
-            EVENT_CLASS_TYPE(AppUpdate);
-            
+            EVENT_CLASS_TYPE(Message);
+
         private:
             protocol::Message m_msg;
     };

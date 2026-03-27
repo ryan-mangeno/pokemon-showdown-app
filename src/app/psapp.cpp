@@ -21,26 +21,16 @@ namespace pkm {
         }
 
         // MenuLayer is always at the bottom
+        // TODO: need to call on attach for all layers
         m_layerstack.push_layer(new MenuLayer(m_client));
 
         // input thread: only pushes raw strings to queue, never touches layers
         m_input = MakeScope<CLInput>();
         m_input->set_callback([this](Event& e) {
             EventDispatcher dispatcher(e);
-            dispatcher.Dispatch<KeyTypedEvent>([this](KeyTypedEvent& e) {
-                char c = static_cast<char>(e.get_keycode());
-                if (c == '\n') {
-                    if (!m_input_buffer.empty()) {
-                        std::string cmd = m_input_buffer;
-                        m_input_buffer.clear();
-                        m_input_queue.push(cmd);
-                        PK_INFO("Pushed {}", cmd);
-                    }
-                } else if (c == 127) {
-                    if (!m_input_buffer.empty()) m_input_buffer.pop_back();
-                } else {
-                    m_input_buffer += c;
-                }
+            dispatcher.Dispatch<CommandEvent>([this](CommandEvent& e) {
+                std::string cmd = e.get_command();
+                m_input_queue.push(cmd);
                 return true;
             });
         });
@@ -79,7 +69,15 @@ namespace pkm {
     void PsApp::process_input() {
         std::string cmd;
         while (m_input_queue.pop(cmd)) {
-            CommandEvent e(cmd);
+            PK_INFO("[App] Got command: '{}'", cmd);
+
+            if (cmd == "q" || cmd == "quit") {
+                PK_INFO("Quitting...");
+                m_running = false;
+                return;
+            }
+
+            CommandEvent e{cmd};
             push_to_layers(e);
         }
     }

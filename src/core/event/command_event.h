@@ -11,7 +11,7 @@ namespace pkm {
         const std::string& get_command() const { return m_command; }
 
         EVENT_CLASS_CATEGORY(EventCategoryInput | EventCategoryApplication | EventCategoryKeyboard)
-        EVENT_CLASS_TYPE(AppUpdate);
+        EVENT_CLASS_TYPE(Command);
 
     private:
         std::string m_command;

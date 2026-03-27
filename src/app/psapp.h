@@ -32,6 +32,7 @@ namespace pkm {
             EventDispatcher dispatcher(event);
 
             dispatcher.Dispatch<CommandEvent>([this](CommandEvent& e) {
+                PK_INFO("[MenuLayer] Command received: '{}'", e.get_command());
                 const std::string& cmd = e.get_command();
                 if (cmd == "1") {
                     PK_INFO("[Menu] Searching for battle...");
@@ -82,6 +83,8 @@ namespace pkm {
 
             dispatcher.Dispatch<CommandEvent>([this](CommandEvent& e) {
                 const std::string& cmd = e.get_command();
+                PK_INFO("[BattleLayer] Command received: '{}'", cmd);
+
                 if (cmd == "5") {
                     PK_INFO("--- ENEMY TEAM ---");
                     for (const auto& p : m_state.opponent_team())
@@ -160,7 +163,6 @@ namespace pkm {
         pkm::SPSCQueue<protocol::Message>  m_network_queue{256};
         pkm::SPSCQueue<std::string>        m_input_queue{64};
 
-        std::string  m_input_buffer;
         bool         m_running;
         bool         m_in_battle;
     };

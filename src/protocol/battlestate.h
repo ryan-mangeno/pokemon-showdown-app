@@ -38,6 +38,8 @@ namespace pkm::protocol {
             inline const std::vector<Pokemon>& your_team() const noexcept { return m_your_team; };
             inline const std::vector<Pokemon>& opponent_team() const noexcept { return m_opponent_team; };
             inline const std::vector<MoveOption>& available_moves() const noexcept { return m_available_moves; };
+            inline bool is_force_switch() const noexcept { return m_force_switch; }
+            
             int turn() const;
         
         private:

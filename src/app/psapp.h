@@ -87,9 +87,15 @@ namespace pkm {
                 
                 // TODO: if user enters a command that is invalid we should pass to ui to be rendered
 
+                // TODO: add terra type
+
                 // temporary but should be a battle way to handle this
                 if (cmd == "1" || cmd == "2" || cmd == "3" || cmd == "4") {
-                    m_client->send(m_battle_room + "|/choose move " + cmd);
+                    if (m_state.is_force_switch()) {
+                        m_client->send(m_battle_room + "|/choose switch " + cmd);
+                    } else {
+                        m_client->send(m_battle_room + "|/choose move " + cmd);
+                    }
                 } else if ( cmd == "f") {
                     m_client->send(m_battle_room + "|/forfeit");
                 }  else if (cmd == "t") {
@@ -100,6 +106,11 @@ namespace pkm {
                         m_client->send(m_battle_room + "|/timer on");
                         m_timer_active = true;
                     }
+                } else if (cmd == "s1" || cmd == "s2" || cmd == "s3" || 
+                           cmd == "s4" || cmd == "s5" || cmd == "s6") {
+                    // explicit switch command
+                    std::string slot = cmd.substr(1); // strip the 's'
+                    m_client->send(m_battle_room + "|/choose switch " + slot);
                 }
                 // do not propogate command events further for now
                 return true;
@@ -155,6 +166,7 @@ namespace pkm {
         void on_network_message(const protocol::Message& msg);
 
         std::string build_battle_ui();
+        std::string build_main_menu_ui();
 
     private:
         Ref<protocol::PsClient>            m_client;

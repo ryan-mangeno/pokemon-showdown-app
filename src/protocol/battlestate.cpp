@@ -42,7 +42,7 @@ namespace pkm::protocol {
             apply_switch(msg);
         } else if (msg.type == "turn") {
             m_turn = std::stoi(msg.args[0]);
-        }
+        } 
     }
 
     void BattleState::apply_request(const Message& msg) {
@@ -137,7 +137,9 @@ namespace pkm::protocol {
         // deactivate all
         for (Pokemon& p : team) p.active = false;
 
-        // find or create the switching pokemon
+        // find or create the switching pokemon since if its on enemy team we wont have visibiltiy of it yet
+        // or atleast we arent supposed to to keep things fair for random 6v6 for example
+        // TODO: some modes might enable viewing of whole team before, might have to impl
         Pokemon* pkm = find_pokemon(ident);
         if (!pkm) {
             // opponent pokemon we havent seen yet

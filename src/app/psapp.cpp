@@ -107,9 +107,26 @@ namespace pkm {
             }
         }
 
-        ss << "\r [f] Forfeit\r\n";
+        ss << "\r\n [f] Forfeit\r\n";
         ss << "\r [t] Toggle Timer\r\n";
+        ss << "\r [s<1-6>] Switch\r\n";
 
+        ss << "\r=================================================\r\n";
+        return ss.str();
+    }
+
+    std::string PsApp::build_main_menu_ui() {
+        std::stringstream ss;
+
+        ss << "\r=================================================\r\n";
+        ss << "\r  POKEMON SHOWDOWN CLI  |  MAIN MENU            \r\n";
+        ss << "\r=================================================\r\n\r\n";
+
+        ss << "\r  Welcome!\r\n\r\n";
+
+        ss << "\r--- AVAILABLE ACTIONS ---\r\n";
+        ss << "\r [1] Search for Random Battle\r\n";
+        ss << "\r [q] Quit\r\n";
 
         ss << "\r=================================================\r\n";
         return ss.str();
@@ -119,6 +136,13 @@ namespace pkm {
         if (m_in_battle) {
             std::string new_ui = build_battle_ui();
             if (new_ui != m_ui) {  // only update if changed
+                m_ui = new_ui;
+                m_input->set_input_ui(m_ui);
+            }
+        } else {
+            // TODO: handle more cases for dif uis, also need to make other menus
+            std::string new_ui = build_main_menu_ui();
+            if (new_ui != m_ui) {
                 m_ui = new_ui;
                 m_input->set_input_ui(m_ui);
             }
@@ -165,7 +189,7 @@ namespace pkm {
     void PsApp::on_network_message(const protocol::Message& msg) {
         // PsApp handles structural decisions, push/pop layers
         // everything else goes to layers via MessageEvent
-
+        PK_TRACE("Network Msg: {}", msg.type);
         if (msg.type == "updatesearch" && !msg.args.empty()) {
             auto j = nlohmann::json::parse(msg.args[0]);
             if (!j["games"].is_null() && !m_in_battle) {
@@ -177,6 +201,7 @@ namespace pkm {
                 m_battle_layer = new BattleLayer(m_client, room);
                 m_layerstack.push_layer(m_battle_layer);
             }
+            // TODO: add message on end game
         } else if (msg.type == "win" || msg.type == "tie") {
             if (m_battle_layer) {
                 m_layerstack.pop_layer(m_battle_layer);
